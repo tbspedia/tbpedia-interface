@@ -8,4 +8,5 @@ Implemented Obsidian-language-aware UI localization for all 13 requested locales
 - Added translations for the theme picker, default “None” entry, command palette command, and light/dark toggle tooltip in main.js (line 7)
 - Uses Obsidian’s saved display-language preference, including zh/zh-Hans → zh-CN aliases, with English fallback.
 - Controls refresh after Obsidian layout/language updates.
-- Bumped plugin version to 1.1.0 in manifest.json (line 4).
+- Version 1.1.1 adds independent Enable Change Theme and Enable Change Mode toggles in the plugin settings. Both are enabled by default, apply immediately, and persist across restarts. Disabling Change Theme also disables its command.
+- New settings are translated into English, Traditional Chinese, and Simplified Chinese, with English fallback for other locales.

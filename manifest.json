@@ -1,10 +1,10 @@
 {
-  "id": "theme-picker",
-  "name": "Theme Picker",
-  "version": "1.1.0",
+  "id": "tbpedia-interface",
+  "name": "True Buddha Pedia Interaface",
+  "version": "1.1.1",
   "minAppVersion": "1.0.0",
-  "description": "Quickly preview installed themes",
-  "author": "kenset",
-  "authorUrl": "https://github.com/kenset",
-  "isDesktopOnly": true
+  "description": "Quickly swicth to installed themes and base color scheme",
+  "author": "真佛百科",
+  "authorUrl": "https://github.com/tbspedia/tbpedia-interface",
+  "isDesktopOnly": false
 }

@@ -14,6 +14,10 @@ const TRANSLATIONS = {
     en: {
         none: "None",
         changeTheme: "Change theme",
+        enableChangeTheme: "Enable Change Theme",
+        enableChangeThemeDescription: "Show the theme picker in the status bar and enable its command.",
+        enableChangeMode: "Enable Change Mode",
+        enableChangeModeDescription: "Show the light/dark mode switch in the status bar.",
         openThemePicker: "Open theme picker",
         switchToLightMode: "Switch to light mode",
         switchToDarkMode: "Switch to dark mode"
@@ -70,6 +74,10 @@ const TRANSLATIONS = {
     "zh-TW": {
         none: "無",
         changeTheme: "變更主題",
+        enableChangeTheme: "啟用變更主題",
+        enableChangeThemeDescription: "在狀態列顯示主題選擇器並啟用其指令。",
+        enableChangeMode: "啟用變更模式",
+        enableChangeModeDescription: "在狀態列顯示淺色／深色模式切換按鈕。",
         openThemePicker: "開啟主題選擇器",
         switchToLightMode: "切換至淺色模式",
         switchToDarkMode: "切換至深色模式"
@@ -77,6 +85,10 @@ const TRANSLATIONS = {
     "zh-CN": {
         none: "无",
         changeTheme: "更改主题",
+        enableChangeTheme: "启用更改主题",
+        enableChangeThemeDescription: "在状态栏显示主题选择器并启用其命令。",
+        enableChangeMode: "启用更改模式",
+        enableChangeModeDescription: "在状态栏显示浅色／深色模式切换按钮。",
         openThemePicker: "打开主题选择器",
         switchToLightMode: "切换到浅色模式",
         switchToDarkMode: "切换到深色模式"
@@ -227,6 +239,33 @@ class ThemePickerPluginModal extends obsidian.FuzzySuggestModal {
     }
 }
 
+const DEFAULT_SETTINGS = {
+    enableChangeTheme: true,
+    enableChangeMode: true
+};
+
+class ThemePickerSettingTab extends obsidian.PluginSettingTab {
+    constructor(app, plugin) {
+        super(app, plugin);
+        this.plugin = plugin;
+    }
+    display() {
+        this.containerEl.empty();
+        for (const key of ["enableChangeTheme", "enableChangeMode"]) {
+            new obsidian.Setting(this.containerEl)
+                .setName(translate(this.app, key))
+                .setDesc(translate(this.app, key + "Description"))
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings[key])
+                    .onChange(async value => {
+                        this.plugin.settings[key] = value;
+                        this.plugin.applySettings();
+                        await this.plugin.saveData(this.plugin.settings);
+                    }));
+        }
+    }
+}
+
 class ThemePicker extends obsidian.Plugin {
     constructor() {
         super(...arguments);
@@ -237,14 +276,19 @@ class ThemePicker extends obsidian.Plugin {
     }
     onload() {
         return __awaiter(this, void 0, void 0, function* () {
+            this.settings = Object.assign({}, DEFAULT_SETTINGS, yield this.loadData());
+            this.addSettingTab(new ThemePickerSettingTab(this.app, this));
             this.colorSchemeIcon = this.initializeColorSchemeIcon();
             const themePickerStatusBarItem = this.addStatusBarItem();
+            this.themePickerStatusBarItem = themePickerStatusBarItem;
             const changeThemeButton = themePickerStatusBarItem.createDiv({
                 cls: "status-bar-item mod-clickable",
                 text: translate(this.app, "changeTheme")
             });
             changeThemeButton.addEventListener("click", () => {
-                new ThemePickerPluginModal(this.app).open();
+                if (this.settings.enableChangeTheme) {
+                    new ThemePickerPluginModal(this.app).open();
+                }
             });
             const changeColorSchemeButton = themePickerStatusBarItem.createDiv({
                 cls: "status-bar-item mod-clickable theme-picker-color-scheme-icon",
@@ -254,10 +298,15 @@ class ThemePicker extends obsidian.Plugin {
             this.changeThemeButton = changeThemeButton;
             this.changeColorSchemeButton = changeColorSchemeButton;
             this.refreshLocalizedUi();
+            this.applySettings();
             this.addCommand({
                 id: 'open-theme-picker',
                 name: translate(this.app, "openThemePicker"),
-                callback: () => new ThemePickerPluginModal(this.app).open()
+                checkCallback: checking => {
+                    if (!this.settings.enableChangeTheme) return false;
+                    if (!checking) new ThemePickerPluginModal(this.app).open();
+                    return true;
+                }
             });
             this.registerEvent(this.app.workspace.on("css-change", () => {
                 this.colorSchemeIcon.innerHTML = this.getColorSchemeIcon();
@@ -283,6 +332,7 @@ class ThemePicker extends obsidian.Plugin {
         return this.isDarkMode() ? this.sunIconSvg : this.moonIconSvg;
     }
     toggleColorScheme() {
+        if (!this.settings.enableChangeMode) return;
         let colorSchemeKey;
         if (this.isDarkMode()) {
             colorSchemeKey = this.LIGHT_MODE_THEME_KEY;
@@ -295,6 +345,12 @@ class ThemePicker extends obsidian.Plugin {
         //@ts-ignore
         this.app.changeTheme(colorSchemeKey);
         this.refreshLocalizedUi();
+    }
+    applySettings() {
+        this.changeThemeButton.style.display = this.settings.enableChangeTheme ? "" : "none";
+        this.changeColorSchemeButton.style.display = this.settings.enableChangeMode ? "" : "none";
+        this.themePickerStatusBarItem.style.display =
+            this.settings.enableChangeTheme || this.settings.enableChangeMode ? "" : "none";
     }
     refreshLocalizedUi() {
         var _a, _b;
