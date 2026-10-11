@@ -10,11 +10,11 @@
 	fill: var(--text-normal);
 }
 
-.tbpedia-mobile-navigation-host {
+.tbpedia-navigation-host {
 	position: relative;
 }
 
-.markdown-preview-view.tbpedia-mobile-reader {
+.markdown-preview-view.tbpedia-navigation-reader {
 	padding-bottom: calc(150px + env(safe-area-inset-bottom));
 	overscroll-behavior-y: contain;
 }

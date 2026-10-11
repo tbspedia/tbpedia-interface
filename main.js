@@ -240,17 +240,54 @@ const DEFAULT_SETTINGS = {
     enableChangeMode: true,
     enableMobileSwipe: false,
     mobileReadingOrder: "filename",
-    mobileLoopFolder: false
+    mobileLoopFolder: false,
+    enableDesktopScroll: false,
+    desktopReadingOrder: "filename",
+    desktopLoopFolder: false
 };
 
 const MOBILE_TEXT = {
-    en: ["Mobile", "Swipe up to next note", "In mobile Reading view, swipe again at the bottom to open the next Markdown note in the same folder.", "Reading order", "Filename", "reading-order property", "Loop at end of folder", "Continue with the first note after the last note.", "Next in this folder", "↑ Swipe up to continue · or tap", "Release to open", "You’ve reached the end of this folder", "Could not open the next note."],
-    "zh-TW": ["行動裝置", "向上滑動至下一篇", "在行動裝置閱讀模式中，到達底部後再次向上滑動，開啟同資料夾的下一篇 Markdown 筆記。", "閱讀順序", "檔名", "reading-order 屬性", "循環閱讀資料夾", "最後一篇之後繼續閱讀第一篇。", "同資料夾下一篇", "↑ 向上滑動繼續 · 或點按", "放開以開啟", "已到達此資料夾的最後一篇", "無法開啟下一篇筆記。"],
-    "zh-CN": ["移动设备", "向上滑动至下一篇", "在移动设备阅读模式中，到达底部后再次向上滑动，打开同文件夹的下一篇 Markdown 笔记。", "阅读顺序", "文件名", "reading-order 属性", "循环阅读文件夹", "最后一篇之后继续阅读第一篇。", "同文件夹下一篇", "↑ 向上滑动继续 · 或点击", "松开以打开", "已到达此文件夹的最后一篇", "无法打开下一篇笔记。"]
+    en: ["Mobile", "Swipe up to next note", "In mobile Reading view, swipe again at the bottom to open the next note in the selected reading sequence.", "Reading order", "Filename", "reading-order property", "Loop at end of folder", "Continue with the first note after the last note.", "Next in this folder", "↑ Swipe up to continue · or tap", "Release to open", "You’ve reached the end of this folder", "Could not open the next note."],
+    "zh-TW": ["行動裝置", "向上滑動至下一篇", "在行動裝置閱讀模式中，到達底部後再次向上滑動，開啟所選閱讀順序中的下一篇筆記。", "閱讀順序", "檔名", "reading-order 屬性", "循環閱讀資料夾", "最後一篇之後繼續閱讀第一篇。", "同資料夾下一篇", "↑ 向上滑動繼續 · 或點按", "放開以開啟", "已到達此資料夾的最後一篇", "無法開啟下一篇筆記。"],
+    "zh-CN": ["移动设备", "向上滑动至下一篇", "在移动设备阅读模式中，到达底部后再次向上滑动，打开所选阅读顺序中的下一篇笔记。", "阅读顺序", "文件名", "reading-order 属性", "循环阅读文件夹", "最后一篇之后继续阅读第一篇。", "同文件夹下一篇", "↑ 向上滑动继续 · 或点击", "松开以打开", "已到达此文件夹的最后一篇", "无法打开下一篇笔记。"]
 };
 
 function mobileText(app, index) {
     return (MOBILE_TEXT[getObsidianLocale(app)] || MOBILE_TEXT.en)[index];
+}
+
+const NAV_TEXT = {
+    en: { desktop: "Desktop", scroll: "Scroll to next note", scrollDescription: "In Reading view, pause at the bottom, then scroll down again to open the next note.", chapter: "Next chapter property", orderDescription: "Choose filename order, numeric reading-order, or a link in next chapter / 下一章節 / 下一章节.", next: "Next note", wheelHint: "↓ Scroll down to continue · or click", wheelProgress: "Keep scrolling to open", end: "End of reading sequence", missing: "No valid next chapter link", loopDescription: "Continue with the first note after the last note. Applies to filename and numeric property order only." },
+    "zh-TW": { desktop: "桌面", scroll: "滾動至下一篇", scrollDescription: "在閱讀模式中，到達底部後稍停，再向下滾動以開啟下一篇筆記。", chapter: "下一章節連結屬性", orderDescription: "選擇檔名、數值 reading-order，或 next chapter／下一章節／下一章节 屬性中的連結。", next: "下一篇筆記", wheelHint: "↓ 向下滾動繼續 · 或點按", wheelProgress: "繼續滾動以開啟", end: "已到達閱讀序列末尾", missing: "沒有有效的下一章節連結", loopDescription: "最後一篇之後繼續第一篇。僅適用於檔名與數值屬性順序。" },
+    "zh-CN": { desktop: "桌面", scroll: "滚动至下一篇", scrollDescription: "在阅读模式中，到达底部后稍停，再向下滚动以打开下一篇笔记。", chapter: "下一章节链接属性", orderDescription: "选择文件名、数值 reading-order，或 next chapter／下一章節／下一章节 属性中的链接。", next: "下一篇笔记", wheelHint: "↓ 向下滚动继续 · 或点击", wheelProgress: "继续滚动以打开", end: "已到达阅读序列末尾", missing: "没有有效的下一章节链接", loopDescription: "最后一篇之后继续第一篇。仅适用于文件名与数值属性顺序。" }
+};
+
+function navText(app, key) {
+    return (NAV_TEXT[getObsidianLocale(app)] || NAV_TEXT.en)[key];
+}
+
+function nextChapter(app, file) {
+    const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter || {};
+    for (const key of ["next chapter", "下一章節", "下一章节"]) {
+        const value = frontmatter[key];
+        if (value === undefined || value === null || value === "") continue;
+        // A chapter has one successor; a one-item YAML list is also accepted.
+        let link = Array.isArray(value) && value.length === 1 ? value[0] : value;
+        if (typeof link !== "string" || !link.trim()) return null;
+        link = link.trim();
+        if (link.startsWith("[[") && link.endsWith("]]")) link = link.slice(2, -2).split("|")[0];
+        else {
+            const markdown = link.match(/^\[[^\]]*\]\((.+)\)$/);
+            if (markdown) link = markdown[1].replace(/^<(.+)>$/, "$1");
+        }
+        if (/^[a-z][a-z\d+.-]*:/i.test(link) || link.startsWith("//")) return null;
+        try { link = decodeURIComponent(link); } catch (_) { return null; }
+        const linkpath = obsidian.parseLinktext(link).path;
+        if (!linkpath) return null;
+        const target = app.metadataCache.getFirstLinkpathDest(linkpath, file.path);
+        return target instanceof obsidian.TFile && target.extension.toLowerCase() === "md" && target.path !== file.path ? target : null;
+    }
+    return null;
 }
 
 function folderSequence(app, file, order) {
@@ -268,7 +305,7 @@ function folderSequence(app, file, order) {
 
 // Keep the footer outside Obsidian's rendered Markdown so rerenders, exports,
 // and embedded notes do not acquire navigation controls.
-class MobileNoteNavigation {
+class NoteNavigation {
     constructor(plugin) {
         this.plugin = plugin;
         this.app = plugin.app;
@@ -276,9 +313,16 @@ class MobileNoteNavigation {
         this.positions = new Map();
         this.busy = false;
     }
+    enabled() {
+        return obsidian.Platform.isMobile ? this.plugin.settings.enableMobileSwipe : this.plugin.settings.enableDesktopScroll;
+    }
+    instruction() {
+        return obsidian.Platform.isMobile ? mobileText(this.app, this.gesture?.ready ? 10 : 9)
+            : navText(this.app, this.wheelDistance ? "wheelProgress" : "wheelHint");
+    }
     refresh() {
         const view = this.app.workspace.getActiveViewOfType(obsidian.MarkdownView);
-        const enabled = obsidian.Platform.isMobile && this.plugin.settings.enableMobileSwipe;
+        const enabled = this.enabled();
         const scroller = enabled && view?.getMode() === "preview" && view.file
             ? view.contentEl.querySelector(".markdown-preview-view") : null;
         if (this.view !== view || this.scroller !== scroller || this.path !== view?.file?.path) {
@@ -291,17 +335,23 @@ class MobileNoteNavigation {
             this.scroller.scrollTop = top;
             if (Math.abs(this.scroller.scrollTop - top) < 3 || Date.now() >= deadline) this.restorePosition = null;
         }
-        const files = folderSequence(this.app, view.file, this.plugin.settings.mobileReadingOrder);
+        const order = obsidian.Platform.isMobile ? this.plugin.settings.mobileReadingOrder : this.plugin.settings.desktopReadingOrder;
+        const loop = obsidian.Platform.isMobile ? this.plugin.settings.mobileLoopFolder : this.plugin.settings.desktopLoopFolder;
+        const files = folderSequence(this.app, view.file, order);
         const index = files.findIndex(file => file.path === view.file.path);
-        this.next = index >= 0 ? files[index + 1] || (this.plugin.settings.mobileLoopFolder && files.length > 1 ? files[0] : null) : null;
+        const next = order === "next-chapter" ? nextChapter(this.app, view.file)
+            : index >= 0 ? files[index + 1] || (loop && files.length > 1 ? files[0] : null) : null;
+        if (this.next?.path !== next?.path) { this.resetGesture(); this.resetWheel(); }
+        this.next = next;
         const bottom = this.atBottom();
-        this.footer.hidden = !bottom || files.length < 2 || this.busy;
+        this.footer.hidden = !bottom || (order !== "next-chapter" && files.length < 2) || this.busy;
         this.footer.disabled = !this.next || this.busy;
-        this.label.textContent = mobileText(this.app, this.next ? 8 : 11);
+        this.label.textContent = navText(this.app, this.next ? "next" : order === "next-chapter" ? "missing" : "end");
         this.title.textContent = this.next ? this.next.basename : "";
-        this.hint.textContent = this.next ? mobileText(this.app, this.gesture?.ready ? 10 : 9) : "";
+        this.hint.textContent = this.next ? this.instruction() : "";
         this.footer.setAttribute("aria-label", [this.label.textContent, this.title.textContent, this.hint.textContent].filter(Boolean).join(". "));
         if (this.gesture && !bottom) this.resetGesture();
+        if (!bottom) this.resetWheel();
         // Remember pixel position separately from Obsidian's own history state.
         if (!this.restorePosition) this.positions.set(this.path, this.scroller.scrollTop);
     }
@@ -312,9 +362,9 @@ class MobileNoteNavigation {
         this.view = view;
         this.path = view.file.path;
         this.scroller = scroller;
-        scroller.classList.add("tbpedia-mobile-reader");
+        scroller.classList.add("tbpedia-navigation-reader");
         this.host = view.contentEl;
-        this.host.classList.add("tbpedia-mobile-navigation-host");
+        this.host.classList.add("tbpedia-navigation-host");
         this.footer = document.createElement("button");
         this.footer.type = "button";
         this.footer.className = "tbpedia-next-note";
@@ -330,16 +380,13 @@ class MobileNoteNavigation {
         };
         listen(this.footer, "click", () => { if (Date.now() >= (this.suppressClickUntil || 0)) void this.openNext(); });
         listen(scroller, "scroll", () => this.refresh(), { passive: true });
+        if (!obsidian.Platform.isMobile) listen(this.host, "wheel", event => this.onWheel(event), { passive: false });
+        if (obsidian.Platform.isMobile) {
         listen(this.host, "touchstart", event => {
             this.resetGesture();
             const target = event.target;
             if (this.busy || !this.next || !this.atBottom() || event.touches.length !== 1 || view.getMode() !== "preview") return;
-            if (!this.scroller.contains(target) && !this.footer.contains(target)) return;
-            if (target.closest("a, input, textarea, select, video, audio, iframe, canvas, .internal-embed, .markdown-embed, [contenteditable=true]") || (target.closest("button") && !this.footer.contains(target))) return;
-            if (window.getSelection()?.toString()) return;
-            for (let el = target; el && el !== this.scroller && el !== this.host; el = el.parentElement) {
-                if (el.scrollWidth > el.clientWidth + 3 || el.scrollHeight > el.clientHeight + 3 && /auto|scroll/.test(window.getComputedStyle(el).overflowY)) return;
-            }
+            if (!this.acceptsTarget(target)) return;
             const touch = event.touches[0];
             this.gesture = { x: touch.clientX, y: touch.clientY, ready: false, nextPath: this.next.path };
         }, { passive: true });
@@ -366,6 +413,7 @@ class MobileNoteNavigation {
             }
         });
         listen(this.host, "touchcancel", () => this.resetGesture());
+        }
         const saved = this.positions.get(this.path);
         if (saved !== undefined) {
             scroller.scrollTop = saved;
@@ -377,11 +425,57 @@ class MobileNoteNavigation {
         if (this.footer) {
             this.footer.style.removeProperty("--swipe-progress");
             this.footer.style.removeProperty("transform");
-            if (this.hint) this.hint.textContent = this.next ? mobileText(this.app, 9) : "";
+            if (this.hint) this.hint.textContent = this.next ? this.instruction() : "";
         }
     }
-    async openNext() {
-        if (this.busy || !this.next || !this.atBottom() || !this.plugin.settings.enableMobileSwipe || this.view?.getMode() !== "preview") return;
+    acceptsTarget(target) {
+        if (!target?.closest || (!this.scroller.contains(target) && !this.footer.contains(target))) return false;
+        if (target.closest("a, input, textarea, select, video, audio, iframe, canvas, .internal-embed, .markdown-embed, [contenteditable=true]") || (target.closest("button") && !this.footer.contains(target))) return false;
+        if (window.getSelection()?.toString()) return false;
+        for (let el = target; el && el !== this.scroller && el !== this.host; el = el.parentElement) {
+            if (el.scrollWidth > el.clientWidth + 3 || el.scrollHeight > el.clientHeight + 3 && /auto|scroll/.test(window.getComputedStyle(el).overflowY)) return false;
+        }
+        return true;
+    }
+    resetWheel() {
+        this.wheelDistance = 0;
+        this.wheelArmed = false;
+        if (this.wheelTimer) clearTimeout(this.wheelTimer);
+        this.wheelTimer = null;
+        this.footer?.style.removeProperty("--swipe-progress");
+    }
+    onWheel(event) {
+        const now = Date.now();
+        const fresh = this.lastWheelTime === undefined || now - this.lastWheelTime >= 300;
+        this.lastWheelTime = now;
+        if (!this.scroller || this.busy || now < (this.cooldownUntil || 0)) return;
+        // Resolve again before acting: metadata and the active view may have changed.
+        this.refresh();
+        if (!this.scroller || !this.enabled() || !this.next || !this.atBottom() || this.view.getMode() !== "preview"
+            || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.deltaY <= 0
+            || Math.abs(event.deltaX) > Math.abs(event.deltaY) || !this.acceptsTarget(event.target)) {
+            this.resetWheel();
+            return;
+        }
+        if (fresh) { this.resetWheel(); this.wheelArmed = true; }
+        if (!this.wheelArmed || !event.cancelable) return;
+        event.preventDefault();
+        const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.scroller.clientHeight : 1;
+        this.wheelDistance += Math.min(event.deltaY * multiplier, 120);
+        this.footer.style.setProperty("--swipe-progress", String(Math.min(this.wheelDistance / 160, 1)));
+        this.hint.textContent = this.instruction();
+        if (this.wheelTimer) clearTimeout(this.wheelTimer);
+        this.wheelTimer = setTimeout(() => { this.resetWheel(); this.refresh(); }, 500);
+        if (this.wheelDistance >= 160) {
+            this.resetWheel();
+            this.cooldownUntil = now + 800;
+            void this.openNext();
+        }
+    }
+    async openNext(expectedPath = this.next?.path) {
+        if (this.busy) return;
+        this.refresh();
+        if (!this.next || this.next.path !== expectedPath || !this.atBottom() || !this.enabled() || this.view?.getMode() !== "preview") return;
         const view = this.view;
         const next = this.next;
         this.positions.set(this.path, this.scroller.scrollTop);
@@ -407,11 +501,12 @@ class MobileNoteNavigation {
     }
     detach() {
         this.resetGesture();
+        this.resetWheel();
         this.cleanup.splice(0).forEach(remove => remove());
         this.footer?.remove();
-        this.host?.classList.remove("tbpedia-mobile-navigation-host");
+        this.host?.classList.remove("tbpedia-navigation-host");
         this.scroller?.classList.remove("tbpedia-note-enter");
-        this.scroller?.classList.remove("tbpedia-mobile-reader");
+        this.scroller?.classList.remove("tbpedia-navigation-reader");
         this.view = this.scroller = this.host = this.footer = this.next = null;
         this.restorePosition = null;
         this.path = null;
@@ -437,30 +532,37 @@ class ThemePickerSettingTab extends obsidian.PluginSettingTab {
                         await this.plugin.saveData(this.plugin.settings);
                     }));
         }
-        this.containerEl.createEl("h3", { text: mobileText(this.app, 0) });
+        for (const mobile of [true, false]) {
+        const enabledKey = mobile ? "enableMobileSwipe" : "enableDesktopScroll";
+        const orderKey = mobile ? "mobileReadingOrder" : "desktopReadingOrder";
+        const loopKey = mobile ? "mobileLoopFolder" : "desktopLoopFolder";
+        this.containerEl.createEl("h3", { text: mobile ? mobileText(this.app, 0) : navText(this.app, "desktop") });
         new obsidian.Setting(this.containerEl)
-            .setName(mobileText(this.app, 1)).setDesc(mobileText(this.app, 2))
-            .addToggle(toggle => toggle.setValue(this.plugin.settings.enableMobileSwipe).onChange(async value => {
-                this.plugin.settings.enableMobileSwipe = value;
+            .setName(mobile ? mobileText(this.app, 1) : navText(this.app, "scroll"))
+            .setDesc(mobile ? mobileText(this.app, 2) : navText(this.app, "scrollDescription"))
+            .addToggle(toggle => toggle.setValue(this.plugin.settings[enabledKey]).onChange(async value => {
+                this.plugin.settings[enabledKey] = value;
                 this.plugin.applySettings();
                 await this.plugin.saveData(this.plugin.settings);
             }));
         new obsidian.Setting(this.containerEl)
             .setName(mobileText(this.app, 3))
-            .setDesc("Numeric reading-order values come first; missing values use filename order.")
+            .setDesc(navText(this.app, "orderDescription"))
             .addDropdown(dropdown => dropdown.addOption("filename", mobileText(this.app, 4)).addOption("property", mobileText(this.app, 5))
-                .setValue(this.plugin.settings.mobileReadingOrder).onChange(async value => {
-                    this.plugin.settings.mobileReadingOrder = value;
+                .addOption("next-chapter", navText(this.app, "chapter"))
+                .setValue(this.plugin.settings[orderKey]).onChange(async value => {
+                    this.plugin.settings[orderKey] = value;
                     this.plugin.applySettings();
                     await this.plugin.saveData(this.plugin.settings);
                 }));
         new obsidian.Setting(this.containerEl)
-            .setName(mobileText(this.app, 6)).setDesc(mobileText(this.app, 7))
-            .addToggle(toggle => toggle.setValue(this.plugin.settings.mobileLoopFolder).onChange(async value => {
-                this.plugin.settings.mobileLoopFolder = value;
+            .setName(mobileText(this.app, 6)).setDesc(navText(this.app, "loopDescription"))
+            .addToggle(toggle => toggle.setValue(this.plugin.settings[loopKey]).onChange(async value => {
+                this.plugin.settings[loopKey] = value;
                 this.plugin.applySettings();
                 await this.plugin.saveData(this.plugin.settings);
             }));
+        }
     }
 }
 
@@ -475,18 +577,16 @@ class ThemePicker extends obsidian.Plugin {
     onload() {
         return __awaiter(this, void 0, void 0, function* () {
             this.settings = Object.assign({}, DEFAULT_SETTINGS, yield this.loadData());
-            this.mobileNavigation = new MobileNoteNavigation(this);
-            this.register(() => this.mobileNavigation.detach());
-            if (obsidian.Platform.isMobile) {
-                this.app.workspace.onLayoutReady(() => this.mobileNavigation.refresh());
+            this.noteNavigation = new NoteNavigation(this);
+            this.register(() => this.noteNavigation.detach());
+                this.app.workspace.onLayoutReady(() => this.noteNavigation.refresh());
                 for (const event of ["layout-change", "active-leaf-change", "file-open"]) {
-                    this.registerEvent(this.app.workspace.on(event, () => this.mobileNavigation.refresh()));
+                    this.registerEvent(this.app.workspace.on(event, () => this.noteNavigation.refresh()));
                 }
                 // Reading-view DOM can be replaced without a workspace event.
                 this.registerInterval(window.setInterval(() => {
-                    if (this.settings.enableMobileSwipe) this.mobileNavigation.refresh();
+                    if (this.noteNavigation.enabled()) this.noteNavigation.refresh();
                 }, 300));
-            }
             this.addSettingTab(new ThemePickerSettingTab(this.app, this));
             this.colorSchemeIcon = this.initializeColorSchemeIcon();
             const themePickerStatusBarItem = this.addStatusBarItem();
@@ -557,7 +657,7 @@ class ThemePicker extends obsidian.Plugin {
         this.refreshLocalizedUi();
     }
     applySettings() {
-        this.mobileNavigation?.refresh();
+        this.noteNavigation?.refresh();
         this.changeThemeButton.style.display = this.settings.enableChangeTheme ? "" : "none";
         this.changeColorSchemeButton.style.display = this.settings.enableChangeMode ? "" : "none";
         this.themePickerStatusBarItem.style.display =
