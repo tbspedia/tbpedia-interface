@@ -253,7 +253,7 @@ class ThemePickerPluginModal extends obsidian.FuzzySuggestModal {
 }
 
 const DEFAULT_SETTINGS = {
-    interfaceLanguage: "auto",
+    interfaceLanguage: "zh-TW",
     enableChangeTheme: true,
     enableChangeMode: true,
     enableMobileSwipe: false,
@@ -337,6 +337,15 @@ const PICKER_INSTRUCTIONS = {
     sv: "navigera|välja|stänga", ko: "이동|선택|닫기", "zh-TW": "移動|選擇|關閉", "zh-CN": "移动|选择|关闭",
     vi: "di chuyển|chọn|đóng", id: "navigasi|pilih|tutup", th: "เลื่อน|เลือก|ปิด", bo: "འགུལ།|འདེམས།|ཁ་རྒྱག"
 };
+
+// Translate the option label; keep the literal YAML key in the help text.
+const NUMERIC_ORDER_LABELS = {
+    en: "Numeric reading order", ja: "数値による閲覧順序", fr: "Ordre de lecture numérique",
+    es: "Orden de lectura numérico", de: "Numerische Lesereihenfolge", nl: "Numerieke leesvolgorde",
+    sv: "Numerisk läsordning", ko: "숫자 읽기 순서", "zh-TW": "數值閱讀順序", "zh-CN": "数值阅读顺序",
+    vi: "Thứ tự đọc theo số", id: "Urutan baca numerik", th: "ลำดับการอ่านตามตัวเลข", bo: "ཨང་གྲངས་ཀྱི་ཀློག་གོ་རིམ།"
+};
+for (const [locale, label] of Object.entries(NUMERIC_ORDER_LABELS)) MOBILE_TEXT[locale][5] = label;
 
 class AutoHideStatusBar {
     constructor(plugin) {

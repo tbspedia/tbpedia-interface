@@ -2,21 +2,21 @@
 
 Obsidian interface customization for TBpedia. Originally forked from
 [Obsidian Theme Picker](https://github.com/trey-sedate/obsidian-theme-picker),
-version 1.0.9. Theme selection and light/dark switching follow Obsidian's language
-preference by default and have independent settings toggles.
+version 1.0.9. Theme selection and light/dark switching use the selected interface
+language and have independent settings toggles. Traditional Chinese is the default interface language.
 
 Use **Settings → True Buddha Pedia Interaface → Interface language** to choose
 English, Japanese, French, Spanish, German, Dutch, Swedish, Korean, Traditional
 Chinese, Simplified Chinese, Vietnamese, Indonesian, Thai, or Tibetan. Language
 names are shown in their native scripts. The choice is saved per vault and takes
 effect immediately for settings, navigation, status-bar controls, and commands.
-**Follow Obsidian** uses Obsidian's language, with English for unsupported languages.
+**Follow Obsidian** optionally uses Obsidian's language, with English for unsupported languages.
 YAML property identifiers and installed theme names retain their original spelling.
 
 See the [design specification](DESIGN_SPEC.md) for settings, gesture behavior,
 reading order, accessibility, and verification status.
 
-Current release: **1.5.0**, adding complete localization and a saved interface language selector for 14 languages.
+Current release: **1.5.1**, defaulting to Traditional Chinese and translating numeric reading-order option labels in all 14 languages.
 
 Version **1.3.0** adds desktop scroll navigation and explicit next-chapter links
 to the mobile navigation introduced in 1.2.0. Navigation labels are now provided in
@@ -34,7 +34,7 @@ a horizontal swipe, or a cancelled touch does not open another note. Embedded
 content, controls, text selections, and nested scrollable content are excluded.
 
 Filename order uses natural numeric sorting (2 before 10). Alternatively, select
-the **reading-order property** option and add a numeric YAML property:
+the **Numeric reading order** option and add a numeric YAML property:
 
 ```yaml
 reading-order: 1

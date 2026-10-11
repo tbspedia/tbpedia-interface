@@ -40,6 +40,8 @@ for (const table of [api.TRANSLATIONS, api.MOBILE_TEXT, api.NAV_TEXT, api.STATUS
 const app = {};
 const settings = { ...api.DEFAULT_SETTINGS };
 api.LANGUAGE_SETTINGS.set(app, settings);
+assert.equal(api.getObsidianLocale(app), 'zh-TW', 'Traditional Chinese is the default');
+settings.interfaceLanguage = 'auto';
 assert.equal(api.getObsidianLocale(app), 'fr');
 settings.interfaceLanguage = 'bo';
 assert.equal(api.getObsidianLocale(app), 'bo');
@@ -65,6 +67,7 @@ assert.equal(api.getObsidianLocale({}), 'en', 'preferences do not leak across ap
         assert.equal(rows[0].value, locale);
         assert.equal(rows[1].name, api.TRANSLATIONS[locale].enableChangeTheme);
         assert.equal(rows[4].options.property, api.MOBILE_TEXT[locale][5]);
+        assert.ok(!rows[4].options.property.includes('reading-order'), `${locale}: numeric option label is translated`);
     }
     await rows[0].change('ja');
     assert.equal(settings.interfaceLanguage, 'ja');
