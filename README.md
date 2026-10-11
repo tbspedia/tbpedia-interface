@@ -3,16 +3,24 @@
 Obsidian interface customization for TBpedia. Originally forked from
 [Obsidian Theme Picker](https://github.com/trey-sedate/obsidian-theme-picker),
 version 1.0.9. Theme selection and light/dark switching follow Obsidian's language
-preference and have independent settings toggles.
+preference by default and have independent settings toggles.
+
+Use **Settings → True Buddha Pedia Interaface → Interface language** to choose
+English, Japanese, French, Spanish, German, Dutch, Swedish, Korean, Traditional
+Chinese, Simplified Chinese, Vietnamese, Indonesian, Thai, or Tibetan. Language
+names are shown in their native scripts. The choice is saved per vault and takes
+effect immediately for settings, navigation, status-bar controls, and commands.
+**Follow Obsidian** uses Obsidian's language, with English for unsupported languages.
+YAML property identifiers and installed theme names retain their original spelling.
 
 See the [design specification](DESIGN_SPEC.md) for settings, gesture behavior,
 reading order, accessibility, and verification status.
 
-Current release: **1.4.0**, adding desktop status-bar auto-hide.
+Current release: **1.5.0**, adding complete localization and a saved interface language selector for 14 languages.
 
 Version **1.3.0** adds desktop scroll navigation and explicit next-chapter links
-to the mobile navigation introduced in 1.2.0. Navigation labels are provided in
-English, Traditional Chinese, and Simplified Chinese, with English fallback.
+to the mobile navigation introduced in 1.2.0. Navigation labels are now provided in
+all 14 supported interface languages.
 
 ## Mobile reading navigation
 
@@ -92,14 +100,13 @@ including items from other plugins, independently of the theme/mode toggles.
 - Disabling the option or unloading the plugin restores the bar and clears timers.
 
 Each desktop window with a status bar has an independent countdown. Mobile is
-unaffected. The setting and its explanation are localized in English, Traditional
-Chinese, and Simplified Chinese.
+unaffected. The setting and its explanation are localized in all 14 supported languages.
 
 ## Verification
 
 Edit `src/main.js`, run `node build.cjs` to regenerate the distributable, then run
 `node --check main.js`, `node tests/mobile-navigation.test.cjs`, and
-`node tests/status-bar.test.cjs`.
+`node tests/status-bar.test.cjs`, and `node tests/localization.test.cjs`.
 The automated checks use a mocked Obsidian environment; they do not replace
 testing in the mobile app.
 

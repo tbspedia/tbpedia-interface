@@ -119,7 +119,17 @@ const LOCALE_ALIASES = {
     "zh-hant": "zh-TW"
 };
 
+// Plugin preference is scoped to each app/vault and never changes Obsidian's language.
+const INTERFACE_LANGUAGES = {
+    en: "English", ja: "日本語", fr: "Français", es: "Español", de: "Deutsch",
+    nl: "Nederlands", sv: "Svenska", ko: "한국어", "zh-TW": "繁體中文",
+    "zh-CN": "简体中文", vi: "Tiếng Việt", id: "Bahasa Indonesia", th: "ไทย", bo: "བོད་ཡིག"
+};
+const LANGUAGE_SETTINGS = new WeakMap();
+
 function getObsidianLocale(app) {
+    const selected = LANGUAGE_SETTINGS.get(app)?.interfaceLanguage;
+    if (Object.hasOwn(INTERFACE_LANGUAGES, selected)) return selected;
     let language = null;
     try {
         language = window.localStorage.getItem("language");
@@ -181,6 +191,13 @@ class ThemePickerPluginModal extends obsidian.FuzzySuggestModal {
         //@ts-ignore
         this.bgEl.setAttribute("style", "background-color: transparent");
         this.modalEl.classList.add("theme-picker-modal");
+        this.setPlaceholder(translate(this.app, "changeTheme"));
+        const instructions = PICKER_INSTRUCTIONS[getObsidianLocale(app)].split("|");
+        this.setInstructions([
+            { command: "↑ ↓", purpose: instructions[0] },
+            { command: "↵", purpose: instructions[1] },
+            { command: "esc", purpose: instructions[2] }
+        ]);
         //@ts-ignore
         const originalArrowUpEvent = this.scope.keys.find((key) => key.key === "ArrowUp");
         //@ts-ignore
@@ -235,6 +252,7 @@ class ThemePickerPluginModal extends obsidian.FuzzySuggestModal {
 }
 
 const DEFAULT_SETTINGS = {
+    interfaceLanguage: "auto",
     enableChangeTheme: true,
     enableChangeMode: true,
     enableMobileSwipe: false,
@@ -275,6 +293,33 @@ const STATUS_BAR_TEXT = {
 function statusBarText(app, index) {
     return (STATUS_BAR_TEXT[getObsidianLocale(app)] || STATUS_BAR_TEXT.en)[index];
 }
+
+// The build embeds this data so the shipped plugin remains a single JS bundle.
+const LOCALE_DATA = require('./locales.json');
+for (const locale of Object.keys(INTERFACE_LANGUAGES)) {
+    const values = LOCALE_DATA[locale].split("|");
+    TRANSLATIONS[locale] ||= {};
+    MOBILE_TEXT[locale] ||= [];
+    NAV_TEXT[locale] ||= {};
+    STATUS_BAR_TEXT[locale] ||= [];
+    LOCALE_DATA.keys.forEach((key, index) => {
+        if (values[index] === undefined) return; // Existing complete Chinese tables.
+        if (key.startsWith("mobile")) MOBILE_TEXT[locale][Number(key.slice(6))] = values[index];
+        else if (key.startsWith("status")) STATUS_BAR_TEXT[locale][Number(key.slice(6))] = values[index];
+        else if (key in NAV_TEXT.en) NAV_TEXT[locale][key] = values[index];
+        else TRANSLATIONS[locale][key] = values[index];
+    });
+}
+Object.assign(TRANSLATIONS.bo, {
+    none: "མེད།", changeTheme: "བརྗོད་གཞི་བརྗེ།", openThemePicker: "བརྗོད་གཞི་འདེམས་ཆས་ཁ་ཕྱེ།",
+    switchToLightMode: "གསལ་བའི་རྣམ་པར་བརྗེ།", switchToDarkMode: "མུན་པའི་རྣམ་པར་བརྗེ།"
+});
+const PICKER_INSTRUCTIONS = {
+    en: "to navigate|to select|to dismiss", ja: "移動|選択|閉じる", fr: "parcourir|sélectionner|fermer",
+    es: "navegar|seleccionar|cerrar", de: "navigieren|auswählen|schließen", nl: "navigeren|selecteren|sluiten",
+    sv: "navigera|välja|stänga", ko: "이동|선택|닫기", "zh-TW": "移動|選擇|關閉", "zh-CN": "移动|选择|关闭",
+    vi: "di chuyển|chọn|đóng", id: "navigasi|pilih|tutup", th: "เลื่อน|เลือก|ปิด", bo: "འགུལ།|འདེམས།|ཁ་རྒྱག"
+};
 
 class AutoHideStatusBar {
     constructor(plugin) {
@@ -614,6 +659,21 @@ class ThemePickerSettingTab extends obsidian.PluginSettingTab {
     }
     display() {
         this.containerEl.empty();
+        new obsidian.Setting(this.containerEl)
+            .setName(translate(this.app, "interfaceLanguage"))
+            .setDesc(translate(this.app, "interfaceLanguageDescription"))
+            .addDropdown(dropdown => {
+                dropdown.addOption("auto", translate(this.app, "followObsidian"));
+                for (const [code, label] of Object.entries(INTERFACE_LANGUAGES)) dropdown.addOption(code, label);
+                dropdown.setValue(Object.hasOwn(INTERFACE_LANGUAGES, this.plugin.settings.interfaceLanguage)
+                    ? this.plugin.settings.interfaceLanguage : "auto").onChange(async value => {
+                    this.plugin.settings.interfaceLanguage = value;
+                    this.plugin.refreshLocalizedUi();
+                    this.plugin.noteNavigation?.refresh();
+                    this.display();
+                    await this.plugin.saveData(this.plugin.settings);
+                });
+            });
         for (const key of ["enableChangeTheme", "enableChangeMode"]) {
             new obsidian.Setting(this.containerEl)
                 .setName(translate(this.app, key))
@@ -680,6 +740,7 @@ class ThemePicker extends obsidian.Plugin {
     onload() {
         return __awaiter(this, void 0, void 0, function* () {
             this.settings = Object.assign({}, DEFAULT_SETTINGS, yield this.loadData());
+            LANGUAGE_SETTINGS.set(this.app, this.settings);
             this.noteNavigation = new NoteNavigation(this);
             this.register(() => this.noteNavigation.detach());
             this.statusBarAutoHide = new AutoHideStatusBar(this);
@@ -794,6 +855,12 @@ class ThemePicker extends obsidian.Plugin {
     }
     refreshLocalizedUi() {
         var _a, _b;
+        // Registered command objects must also follow language changes.
+        const commands = this.app.commands?.commands;
+        for (const [id, name] of [["open-theme-picker", translate(this.app, "openThemePicker")], ["show-status-bar", statusBarText(this.app, 2)]]) {
+            const command = commands?.[`${this.manifest.id}:${id}`];
+            if (command) command.name = `${this.manifest.name}: ${name}`;
+        }
         if (this.changeThemeButton) {
             this.changeThemeButton.textContent = translate(this.app, "changeTheme");
         }

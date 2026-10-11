@@ -11,6 +11,11 @@ next-chapter property sequence on both platforms.
 Version **1.3.1** rebuilds the current source and republishes the plugin assets;
 the navigation behavior is unchanged from 1.3.0.
 Version **1.4.0** adds optional desktop status-bar auto-hide.
+Version **1.5.0** adds complete settings and navigation localization in 14 languages
+and a saved Interface language selector. Follow Obsidian is the default; explicit
+choices apply immediately without changing Obsidian's own language. Theme names
+and YAML property identifiers retain their original spelling. Localization tests
+check every locale's keys, settings rendering, switching, persistence, and fallback.
 The feature lets readers deliberately continue to the next Markdown note after
 finishing the current note. It operates in Obsidian Reading view on Android,
 iOS, and desktop when the corresponding option is enabled. Real-app/device
@@ -25,6 +30,7 @@ Location: **Settings → True Buddha Pedia Interaface → Mobile / Desktop**.
 
 | Setting | Default | Behavior |
 | --- | --- | --- |
+| Interface language | Follow Obsidian | Choose en, ja, fr, es, de, nl, sv, ko, zh-TW, zh-CN, vi, id, th, or bo. Saved per vault. |
 | Swipe up to next note | Off | Enables the footer and gesture in mobile Reading view. Changes apply immediately and persist. |
 | Scroll to next note | Off | Enables desktop Reading view wheel/trackpad navigation and the footer. |
 | Auto-hide status bar | Off | Desktop: show initially for 15 seconds, then hide; bottom-edge pointer entry reveals it for 30 seconds. |
