@@ -1,0 +1,586 @@
+'use strict';
+
+var obsidian = require('obsidian');
+
+// Obsidian stores its display-language preference in localStorage. Keep the
+// translations in this bundle so the plugin has no runtime dependency on a
+// particular Obsidian translation API.
+const TRANSLATIONS = {
+    en: {
+        none: "None",
+        changeTheme: "Change theme",
+        enableChangeTheme: "Enable Change Theme",
+        enableChangeThemeDescription: "Show the theme picker in the status bar and enable its command.",
+        enableChangeMode: "Enable Change Mode",
+        enableChangeModeDescription: "Show the light/dark mode switch in the status bar.",
+        openThemePicker: "Open theme picker",
+        switchToLightMode: "Switch to light mode",
+        switchToDarkMode: "Switch to dark mode"
+    },
+    ja: {
+        none: "なし",
+        changeTheme: "テーマを変更",
+        openThemePicker: "テーマピッカーを開く",
+        switchToLightMode: "ライトモードに切り替え",
+        switchToDarkMode: "ダークモードに切り替え"
+    },
+    fr: {
+        none: "Aucun",
+        changeTheme: "Changer de thème",
+        openThemePicker: "Ouvrir le sélecteur de thème",
+        switchToLightMode: "Passer en mode clair",
+        switchToDarkMode: "Passer en mode sombre"
+    },
+    es: {
+        none: "Ninguno",
+        changeTheme: "Cambiar tema",
+        openThemePicker: "Abrir selector de temas",
+        switchToLightMode: "Cambiar al modo claro",
+        switchToDarkMode: "Cambiar al modo oscuro"
+    },
+    de: {
+        none: "Keines",
+        changeTheme: "Thema ändern",
+        openThemePicker: "Theme-Auswahl öffnen",
+        switchToLightMode: "Zum hellen Modus wechseln",
+        switchToDarkMode: "Zum dunklen Modus wechseln"
+    },
+    nl: {
+        none: "Geen",
+        changeTheme: "Thema wijzigen",
+        openThemePicker: "Themakiezer openen",
+        switchToLightMode: "Naar lichte modus schakelen",
+        switchToDarkMode: "Naar donkere modus schakelen"
+    },
+    sv: {
+        none: "Ingen",
+        changeTheme: "Byt tema",
+        openThemePicker: "Öppna temaväljaren",
+        switchToLightMode: "Växla till ljust läge",
+        switchToDarkMode: "Växla till mörkt läge"
+    },
+    ko: {
+        none: "없음",
+        changeTheme: "테마 변경",
+        openThemePicker: "테마 선택기 열기",
+        switchToLightMode: "라이트 모드로 전환",
+        switchToDarkMode: "다크 모드로 전환"
+    },
+    "zh-TW": {
+        none: "無",
+        changeTheme: "變更主題",
+        enableChangeTheme: "啟用變更主題",
+        enableChangeThemeDescription: "在狀態列顯示主題選擇器並啟用其指令。",
+        enableChangeMode: "啟用變更模式",
+        enableChangeModeDescription: "在狀態列顯示淺色／深色模式切換按鈕。",
+        openThemePicker: "開啟主題選擇器",
+        switchToLightMode: "切換至淺色模式",
+        switchToDarkMode: "切換至深色模式"
+    },
+    "zh-CN": {
+        none: "无",
+        changeTheme: "更改主题",
+        enableChangeTheme: "启用更改主题",
+        enableChangeThemeDescription: "在状态栏显示主题选择器并启用其命令。",
+        enableChangeMode: "启用更改模式",
+        enableChangeModeDescription: "在状态栏显示浅色／深色模式切换按钮。",
+        openThemePicker: "打开主题选择器",
+        switchToLightMode: "切换到浅色模式",
+        switchToDarkMode: "切换到深色模式"
+    },
+    vi: {
+        none: "Không có",
+        changeTheme: "Đổi giao diện",
+        openThemePicker: "Mở trình chọn giao diện",
+        switchToLightMode: "Chuyển sang chế độ sáng",
+        switchToDarkMode: "Chuyển sang chế độ tối"
+    },
+    id: {
+        none: "Tidak ada",
+        changeTheme: "Ganti tema",
+        openThemePicker: "Buka pemilih tema",
+        switchToLightMode: "Beralih ke mode terang",
+        switchToDarkMode: "Beralih ke mode gelap"
+    },
+    th: {
+        none: "ไม่มี",
+        changeTheme: "เปลี่ยนธีม",
+        openThemePicker: "เปิดตัวเลือกธีม",
+        switchToLightMode: "สลับเป็นโหมดสว่าง",
+        switchToDarkMode: "สลับเป็นโหมดมืด"
+    }
+};
+
+const LOCALE_ALIASES = {
+    "zh": "zh-CN",
+    "zh-cn": "zh-CN",
+    "zh-hans": "zh-CN",
+    "zh-tw": "zh-TW",
+    "zh-hant": "zh-TW"
+};
+
+function getObsidianLocale(app) {
+    let language = null;
+    try {
+        language = window.localStorage.getItem("language");
+    }
+    catch (_a) {
+        // localStorage is normally available in Obsidian, but English remains
+        // a reliable fallback in constrained environments.
+    }
+    if (!language) {
+        try {
+            // getConfig is available at runtime but is not in Obsidian's
+            // public TypeScript declarations.
+            language = app === null || app === void 0 ? void 0 : app.vault.getConfig("language");
+        }
+        catch (_b) {
+            // Keep the English fallback if the legacy config lookup is absent.
+        }
+    }
+    const normalized = String(language || "en").replace(/_/g, "-").toLowerCase();
+    const locale = LOCALE_ALIASES[normalized] || normalized;
+    return TRANSLATIONS[locale] ? locale : "en";
+}
+
+function translate(app, key) {
+    const locale = getObsidianLocale(app);
+    return TRANSLATIONS[locale][key] || TRANSLATIONS.en[key];
+}
+
+/******************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+
+function __awaiter(thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+}
+
+class ThemePickerPluginModal extends obsidian.FuzzySuggestModal {
+    constructor(app) {
+        super(app);
+        this.DEFAULT_THEME_KEY = "";
+        this.previewing = false;
+        //@ts-ignore
+        this.bgEl.setAttribute("style", "background-color: transparent");
+        this.modalEl.classList.add("theme-picker-modal");
+        //@ts-ignore
+        const originalArrowUpEvent = this.scope.keys.find((key) => key.key === "ArrowUp");
+        //@ts-ignore
+        const originalArrowDownEvent = this.scope.keys.find((key) => key.key === "ArrowDown");
+        const newFunction = function (originalFunc, modal) {
+            function newCallback(e) {
+                originalFunc(e, null);
+                //@ts-ignore
+                modal.setTheme(modal.chooser.values[modal.chooser.selectedItem].item);
+                modal.previewing = true;
+            }
+            return newCallback;
+        };
+        originalArrowUpEvent.func = newFunction(originalArrowUpEvent.func, this);
+        originalArrowDownEvent.func = newFunction(originalArrowDownEvent.func, this);
+    }
+    onOpen() {
+        super.onOpen();
+        //@ts-ignore
+        this.initialTheme = this.getItems().find(theme => theme === this.app.customCss.theme);
+        //@ts-ignore
+        this.chooser.setSelectedItem(this.getItems().findIndex(theme => theme === this.app.customCss.theme));
+        //@ts-ignore
+        this.chooser.suggestions[this.chooser.selectedItem].scrollIntoViewIfNeeded();
+    }
+    onClose() {
+        super.onClose();
+        if (this.previewing) {
+            this.setTheme(this.initialTheme);
+        }
+    }
+    getItems() {
+        //@ts-ignore
+        return [this.DEFAULT_THEME_KEY, ...Object.keys(this.app.customCss.themes), ...this.app.customCss.oldThemes];
+    }
+    getItemText(item) {
+        if (item === this.DEFAULT_THEME_KEY) {
+            return translate(this.app, "none");
+        }
+        else {
+            return item;
+        }
+    }
+    onChooseItem(item, evt) {
+        this.previewing = false;
+        this.setTheme(item);
+    }
+    setTheme(themeName) {
+        //@ts-ignore
+        this.app.customCss.setTheme(themeName);
+    }
+}
+
+const DEFAULT_SETTINGS = {
+    enableChangeTheme: true,
+    enableChangeMode: true,
+    enableMobileSwipe: false,
+    mobileReadingOrder: "filename",
+    mobileLoopFolder: false
+};
+
+const MOBILE_TEXT = {
+    en: ["Mobile", "Swipe up to next note", "In mobile Reading view, swipe again at the bottom to open the next Markdown note in the same folder.", "Reading order", "Filename", "reading-order property", "Loop at end of folder", "Continue with the first note after the last note.", "Next in this folder", "↑ Swipe up to continue · or tap", "Release to open", "You’ve reached the end of this folder", "Could not open the next note."],
+    "zh-TW": ["行動裝置", "向上滑動至下一篇", "在行動裝置閱讀模式中，到達底部後再次向上滑動，開啟同資料夾的下一篇 Markdown 筆記。", "閱讀順序", "檔名", "reading-order 屬性", "循環閱讀資料夾", "最後一篇之後繼續閱讀第一篇。", "同資料夾下一篇", "↑ 向上滑動繼續 · 或點按", "放開以開啟", "已到達此資料夾的最後一篇", "無法開啟下一篇筆記。"],
+    "zh-CN": ["移动设备", "向上滑动至下一篇", "在移动设备阅读模式中，到达底部后再次向上滑动，打开同文件夹的下一篇 Markdown 笔记。", "阅读顺序", "文件名", "reading-order 属性", "循环阅读文件夹", "最后一篇之后继续阅读第一篇。", "同文件夹下一篇", "↑ 向上滑动继续 · 或点击", "松开以打开", "已到达此文件夹的最后一篇", "无法打开下一篇笔记。"]
+};
+
+function mobileText(app, index) {
+    return (MOBILE_TEXT[getObsidianLocale(app)] || MOBILE_TEXT.en)[index];
+}
+
+function folderSequence(app, file, order) {
+    if (!file || !file.parent) return [];
+    const files = file.parent.children.filter(child => child instanceof obsidian.TFile && child.extension.toLowerCase() === "md");
+    const rank = note => {
+        const value = app.metadataCache.getFileCache(note)?.frontmatter?.["reading-order"];
+        return (typeof value === "number" || (typeof value === "string" && value.trim() !== "")) && Number.isFinite(Number(value)) ? Number(value) : Infinity;
+    };
+    return files.sort((a, b) => {
+        if (order === "property" && rank(a) !== rank(b)) return rank(a) < rank(b) ? -1 : 1;
+        return a.name.localeCompare(b.name, "en", { numeric: true, sensitivity: "base" }) || a.path.localeCompare(b.path, "en");
+    });
+}
+
+// Keep the footer outside Obsidian's rendered Markdown so rerenders, exports,
+// and embedded notes do not acquire navigation controls.
+class MobileNoteNavigation {
+    constructor(plugin) {
+        this.plugin = plugin;
+        this.app = plugin.app;
+        this.cleanup = [];
+        this.positions = new Map();
+        this.busy = false;
+    }
+    refresh() {
+        const view = this.app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        const enabled = obsidian.Platform.isMobile && this.plugin.settings.enableMobileSwipe;
+        const scroller = enabled && view?.getMode() === "preview" && view.file
+            ? view.contentEl.querySelector(".markdown-preview-view") : null;
+        if (this.view !== view || this.scroller !== scroller || this.path !== view?.file?.path) {
+            this.detach();
+            if (scroller) this.attach(view, scroller);
+        }
+        if (!this.scroller) return;
+        if (this.restorePosition) {
+            const { top, deadline } = this.restorePosition;
+            this.scroller.scrollTop = top;
+            if (Math.abs(this.scroller.scrollTop - top) < 3 || Date.now() >= deadline) this.restorePosition = null;
+        }
+        const files = folderSequence(this.app, view.file, this.plugin.settings.mobileReadingOrder);
+        const index = files.findIndex(file => file.path === view.file.path);
+        this.next = index >= 0 ? files[index + 1] || (this.plugin.settings.mobileLoopFolder && files.length > 1 ? files[0] : null) : null;
+        const bottom = this.atBottom();
+        this.footer.hidden = !bottom || files.length < 2 || this.busy;
+        this.footer.disabled = !this.next || this.busy;
+        this.label.textContent = mobileText(this.app, this.next ? 8 : 11);
+        this.title.textContent = this.next ? this.next.basename : "";
+        this.hint.textContent = this.next ? mobileText(this.app, this.gesture?.ready ? 10 : 9) : "";
+        this.footer.setAttribute("aria-label", [this.label.textContent, this.title.textContent, this.hint.textContent].filter(Boolean).join(". "));
+        if (this.gesture && !bottom) this.resetGesture();
+        // Remember pixel position separately from Obsidian's own history state.
+        if (!this.restorePosition) this.positions.set(this.path, this.scroller.scrollTop);
+    }
+    atBottom() {
+        return this.scroller && this.scroller.clientHeight > 0 && this.scroller.scrollTop >= this.scroller.scrollHeight - this.scroller.clientHeight - 3;
+    }
+    attach(view, scroller) {
+        this.view = view;
+        this.path = view.file.path;
+        this.scroller = scroller;
+        scroller.classList.add("tbpedia-mobile-reader");
+        this.host = view.contentEl;
+        this.host.classList.add("tbpedia-mobile-navigation-host");
+        this.footer = document.createElement("button");
+        this.footer.type = "button";
+        this.footer.className = "tbpedia-next-note";
+        this.footer.hidden = true;
+        this.label = this.footer.appendChild(document.createElement("span"));
+        this.title = this.footer.appendChild(document.createElement("strong"));
+        this.hint = this.footer.appendChild(document.createElement("span"));
+        this.hint.setAttribute("aria-live", "polite");
+        this.host.appendChild(this.footer);
+        const listen = (el, name, callback, options) => {
+            el.addEventListener(name, callback, options);
+            this.cleanup.push(() => el.removeEventListener(name, callback, options));
+        };
+        listen(this.footer, "click", () => { if (Date.now() >= (this.suppressClickUntil || 0)) void this.openNext(); });
+        listen(scroller, "scroll", () => this.refresh(), { passive: true });
+        listen(this.host, "touchstart", event => {
+            this.resetGesture();
+            const target = event.target;
+            if (this.busy || !this.next || !this.atBottom() || event.touches.length !== 1 || view.getMode() !== "preview") return;
+            if (!this.scroller.contains(target) && !this.footer.contains(target)) return;
+            if (target.closest("a, input, textarea, select, video, audio, iframe, canvas, .internal-embed, .markdown-embed, [contenteditable=true]") || (target.closest("button") && !this.footer.contains(target))) return;
+            if (window.getSelection()?.toString()) return;
+            for (let el = target; el && el !== this.scroller && el !== this.host; el = el.parentElement) {
+                if (el.scrollWidth > el.clientWidth + 3 || el.scrollHeight > el.clientHeight + 3 && /auto|scroll/.test(window.getComputedStyle(el).overflowY)) return;
+            }
+            const touch = event.touches[0];
+            this.gesture = { x: touch.clientX, y: touch.clientY, ready: false, nextPath: this.next.path };
+        }, { passive: true });
+        listen(this.host, "touchmove", event => {
+            if (!this.gesture) return;
+            if (event.touches.length !== 1 || !this.atBottom()) return this.resetGesture();
+            const dx = event.touches[0].clientX - this.gesture.x;
+            const distance = this.gesture.y - event.touches[0].clientY;
+            if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(distance) || distance < -12) return this.resetGesture();
+            if (distance <= 0) return;
+            if (!event.cancelable) return this.resetGesture();
+            event.preventDefault();
+            this.gesture.ready = distance >= 80;
+            this.footer.style.setProperty("--swipe-progress", String(Math.min(distance / 80, 1)));
+            this.footer.style.transform = `translateY(-${Math.min(distance * 0.25, 24)}px)`;
+            this.hint.textContent = mobileText(this.app, this.gesture.ready ? 10 : 9);
+        }, { passive: false });
+        listen(this.host, "touchend", event => {
+            const ready = event.touches.length === 0 && this.gesture?.ready && this.gesture.nextPath === this.next?.path;
+            this.resetGesture();
+            if (ready) {
+                this.suppressClickUntil = Date.now() + 500;
+                void this.openNext();
+            }
+        });
+        listen(this.host, "touchcancel", () => this.resetGesture());
+        const saved = this.positions.get(this.path);
+        if (saved !== undefined) {
+            scroller.scrollTop = saved;
+            if (Math.abs(scroller.scrollTop - saved) >= 3) this.restorePosition = { top: saved, deadline: Date.now() + 2000 };
+        }
+    }
+    resetGesture() {
+        this.gesture = null;
+        if (this.footer) {
+            this.footer.style.removeProperty("--swipe-progress");
+            this.footer.style.removeProperty("transform");
+            if (this.hint) this.hint.textContent = this.next ? mobileText(this.app, 9) : "";
+        }
+    }
+    async openNext() {
+        if (this.busy || !this.next || !this.atBottom() || !this.plugin.settings.enableMobileSwipe || this.view?.getMode() !== "preview") return;
+        const view = this.view;
+        const next = this.next;
+        this.positions.set(this.path, this.scroller.scrollTop);
+        this.positions.set(next.path, 0);
+        this.busy = true;
+        this.footer.hidden = true;
+        try {
+            await view.leaf.openFile(next, { state: { mode: "preview" }, eState: { scroll: 0 } });
+            this.refresh();
+            if (this.path === next.path && this.scroller) {
+                this.scroller.scrollTop = 0;
+                this.scroller.classList.remove("tbpedia-note-enter");
+                void this.scroller.offsetWidth;
+                this.scroller.classList.add("tbpedia-note-enter");
+            }
+        } catch (error) {
+            console.error("TBpedia next-note navigation failed", error);
+            new obsidian.Notice(mobileText(this.app, 12));
+        } finally {
+            this.busy = false;
+            this.refresh();
+        }
+    }
+    detach() {
+        this.resetGesture();
+        this.cleanup.splice(0).forEach(remove => remove());
+        this.footer?.remove();
+        this.host?.classList.remove("tbpedia-mobile-navigation-host");
+        this.scroller?.classList.remove("tbpedia-note-enter");
+        this.scroller?.classList.remove("tbpedia-mobile-reader");
+        this.view = this.scroller = this.host = this.footer = this.next = null;
+        this.restorePosition = null;
+        this.path = null;
+    }
+}
+
+class ThemePickerSettingTab extends obsidian.PluginSettingTab {
+    constructor(app, plugin) {
+        super(app, plugin);
+        this.plugin = plugin;
+    }
+    display() {
+        this.containerEl.empty();
+        for (const key of ["enableChangeTheme", "enableChangeMode"]) {
+            new obsidian.Setting(this.containerEl)
+                .setName(translate(this.app, key))
+                .setDesc(translate(this.app, key + "Description"))
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings[key])
+                    .onChange(async value => {
+                        this.plugin.settings[key] = value;
+                        this.plugin.applySettings();
+                        await this.plugin.saveData(this.plugin.settings);
+                    }));
+        }
+        this.containerEl.createEl("h3", { text: mobileText(this.app, 0) });
+        new obsidian.Setting(this.containerEl)
+            .setName(mobileText(this.app, 1)).setDesc(mobileText(this.app, 2))
+            .addToggle(toggle => toggle.setValue(this.plugin.settings.enableMobileSwipe).onChange(async value => {
+                this.plugin.settings.enableMobileSwipe = value;
+                this.plugin.applySettings();
+                await this.plugin.saveData(this.plugin.settings);
+            }));
+        new obsidian.Setting(this.containerEl)
+            .setName(mobileText(this.app, 3))
+            .setDesc("Numeric reading-order values come first; missing values use filename order.")
+            .addDropdown(dropdown => dropdown.addOption("filename", mobileText(this.app, 4)).addOption("property", mobileText(this.app, 5))
+                .setValue(this.plugin.settings.mobileReadingOrder).onChange(async value => {
+                    this.plugin.settings.mobileReadingOrder = value;
+                    this.plugin.applySettings();
+                    await this.plugin.saveData(this.plugin.settings);
+                }));
+        new obsidian.Setting(this.containerEl)
+            .setName(mobileText(this.app, 6)).setDesc(mobileText(this.app, 7))
+            .addToggle(toggle => toggle.setValue(this.plugin.settings.mobileLoopFolder).onChange(async value => {
+                this.plugin.settings.mobileLoopFolder = value;
+                this.plugin.applySettings();
+                await this.plugin.saveData(this.plugin.settings);
+            }));
+    }
+}
+
+class ThemePicker extends obsidian.Plugin {
+    constructor() {
+        super(...arguments);
+        this.DARK_MODE_THEME_KEY = "obsidian";
+        this.LIGHT_MODE_THEME_KEY = "moonstone";
+        this.moonIconSvg = `<path fill="none" d="M0 0h24v24H0z"/><path d="M10 7a7 7 0 0 0 12 4.9v.1c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2h.1A6.979 6.979 0 0 0 10 7zm-6 5a8 8 0 0 0 15.062 3.762A9 9 0 0 1 8.238 4.938 7.999 7.999 0 0 0 4 12z"/>`;
+        this.sunIconSvg = `<path fill="none" d="M0 0h24v24H0z"/><path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2h3zM4 11v2H1v-2h3z"/>`;
+    }
+    onload() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.settings = Object.assign({}, DEFAULT_SETTINGS, yield this.loadData());
+            this.mobileNavigation = new MobileNoteNavigation(this);
+            this.register(() => this.mobileNavigation.detach());
+            if (obsidian.Platform.isMobile) {
+                this.app.workspace.onLayoutReady(() => this.mobileNavigation.refresh());
+                for (const event of ["layout-change", "active-leaf-change", "file-open"]) {
+                    this.registerEvent(this.app.workspace.on(event, () => this.mobileNavigation.refresh()));
+                }
+                // Reading-view DOM can be replaced without a workspace event.
+                this.registerInterval(window.setInterval(() => {
+                    if (this.settings.enableMobileSwipe) this.mobileNavigation.refresh();
+                }, 300));
+            }
+            this.addSettingTab(new ThemePickerSettingTab(this.app, this));
+            this.colorSchemeIcon = this.initializeColorSchemeIcon();
+            const themePickerStatusBarItem = this.addStatusBarItem();
+            this.themePickerStatusBarItem = themePickerStatusBarItem;
+            const changeThemeButton = themePickerStatusBarItem.createDiv({
+                cls: "status-bar-item mod-clickable",
+                text: translate(this.app, "changeTheme")
+            });
+            changeThemeButton.addEventListener("click", () => {
+                if (this.settings.enableChangeTheme) {
+                    new ThemePickerPluginModal(this.app).open();
+                }
+            });
+            const changeColorSchemeButton = themePickerStatusBarItem.createDiv({
+                cls: "status-bar-item mod-clickable theme-picker-color-scheme-icon",
+            });
+            changeColorSchemeButton.addEventListener("click", () => this.toggleColorScheme());
+            changeColorSchemeButton.appendChild(this.colorSchemeIcon);
+            this.changeThemeButton = changeThemeButton;
+            this.changeColorSchemeButton = changeColorSchemeButton;
+            this.refreshLocalizedUi();
+            this.applySettings();
+            this.addCommand({
+                id: 'open-theme-picker',
+                name: translate(this.app, "openThemePicker"),
+                checkCallback: checking => {
+                    if (!this.settings.enableChangeTheme) return false;
+                    if (!checking) new ThemePickerPluginModal(this.app).open();
+                    return true;
+                }
+            });
+            this.registerEvent(this.app.workspace.on("css-change", () => {
+                this.colorSchemeIcon.innerHTML = this.getColorSchemeIcon();
+                this.refreshLocalizedUi();
+            }));
+            // Obsidian refreshes its layout after a language preference change.
+            // Update persistent controls so they track the app language without
+            // requiring the plugin to be re-enabled.
+            this.registerEvent(this.app.workspace.on("layout-change", () => {
+                this.refreshLocalizedUi();
+            }));
+        });
+    }
+    initializeColorSchemeIcon() {
+        const colorSchemeIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        colorSchemeIcon.setAttribute("viewBox", "0 0 22 22");
+        colorSchemeIcon.setAttribute("width", "14");
+        colorSchemeIcon.setAttribute("height", "14");
+        colorSchemeIcon.innerHTML = this.getColorSchemeIcon();
+        return colorSchemeIcon;
+    }
+    getColorSchemeIcon() {
+        return this.isDarkMode() ? this.sunIconSvg : this.moonIconSvg;
+    }
+    toggleColorScheme() {
+        if (!this.settings.enableChangeMode) return;
+        let colorSchemeKey;
+        if (this.isDarkMode()) {
+            colorSchemeKey = this.LIGHT_MODE_THEME_KEY;
+            this.colorSchemeIcon.innerHTML = this.moonIconSvg;
+        }
+        else {
+            colorSchemeKey = this.DARK_MODE_THEME_KEY;
+            this.colorSchemeIcon.innerHTML = this.sunIconSvg;
+        }
+        //@ts-ignore
+        this.app.changeTheme(colorSchemeKey);
+        this.refreshLocalizedUi();
+    }
+    applySettings() {
+        this.mobileNavigation?.refresh();
+        this.changeThemeButton.style.display = this.settings.enableChangeTheme ? "" : "none";
+        this.changeColorSchemeButton.style.display = this.settings.enableChangeMode ? "" : "none";
+        this.themePickerStatusBarItem.style.display =
+            this.settings.enableChangeTheme || this.settings.enableChangeMode ? "" : "none";
+    }
+    refreshLocalizedUi() {
+        var _a, _b;
+        if (this.changeThemeButton) {
+            this.changeThemeButton.textContent = translate(this.app, "changeTheme");
+        }
+        if (this.changeColorSchemeButton) {
+            const label = this.isDarkMode()
+                ? translate(this.app, "switchToLightMode")
+                : translate(this.app, "switchToDarkMode");
+            this.changeColorSchemeButton.setAttribute("aria-label", label);
+            this.changeColorSchemeButton.setAttribute("title", label);
+            (_a = this.changeColorSchemeButton) === null || _a === void 0 ? void 0 : _a.setAttribute("data-tooltip-position", "top");
+            (_b = this.changeColorSchemeButton) === null || _b === void 0 ? void 0 : _b.setAttribute("data-tooltip-delay", "0");
+        }
+    }
+    isDarkMode() {
+        //@ts-ignore
+        return this.app.vault.getConfig("theme") === this.DARK_MODE_THEME_KEY;
+    }
+}
+
+module.exports = ThemePicker;

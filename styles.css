@@ -9,3 +9,60 @@
 .theme-picker-color-scheme-icon:hover > svg {
 	fill: var(--text-normal);
 }
+
+.tbpedia-mobile-navigation-host {
+	position: relative;
+}
+
+.markdown-preview-view.tbpedia-mobile-reader {
+	padding-bottom: calc(150px + env(safe-area-inset-bottom));
+	overscroll-behavior-y: contain;
+}
+
+.tbpedia-next-note {
+	position: absolute;
+	bottom: calc(12px + env(safe-area-inset-bottom));
+	left: 12px;
+	right: 12px;
+	width: calc(100% - 24px);
+	height: auto;
+	min-height: 96px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px 16px;
+	white-space: normal;
+	text-align: center;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	box-shadow: 0 4px 20px rgb(0 0 0 / 12%);
+	z-index: 5;
+	transition: transform 120ms ease;
+	overflow: hidden;
+}
+
+.tbpedia-next-note[hidden] { display: none; }
+.tbpedia-next-note:disabled { opacity: 1; color: var(--text-muted); }
+.tbpedia-next-note span { font-size: var(--font-smallest); color: var(--text-muted); }
+.tbpedia-next-note strong { overflow-wrap: anywhere; }
+.tbpedia-next-note:focus-visible { outline: 2px solid var(--interactive-accent); }
+.tbpedia-next-note::after {
+	content: "";
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	height: 3px;
+	width: calc(var(--swipe-progress, 0) * 100%);
+	background: var(--interactive-accent);
+}
+.tbpedia-note-enter { animation: tbpedia-note-enter 180ms ease-out; }
+@keyframes tbpedia-note-enter {
+	from { opacity: 0.5; transform: translateY(18px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.tbpedia-next-note { transition: none; }
+	.tbpedia-note-enter { animation: none; }
+}
