@@ -5,6 +5,9 @@ Obsidian interface customization for TBpedia. Originally forked from
 version 1.0.9. Theme selection and light/dark switching follow Obsidian's language
 preference and have independent settings toggles.
 
+See the [design specification](DESIGN_SPEC.md) for settings, gesture behavior,
+reading order, accessibility, and verification status.
+
 Version **1.2.0** adds mobile swipe navigation. New mobile labels are provided in
 English, Traditional Chinese, and Simplified Chinese, with English fallback.
 
