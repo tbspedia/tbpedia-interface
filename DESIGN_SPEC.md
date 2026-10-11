@@ -8,6 +8,8 @@ Mobile reading navigation was introduced in
 [version 1.2.0](https://github.com/tbspedia/tbpedia-interface/releases/tag/1.2.0).
 Version **1.3.0** adds desktop wheel/trackpad navigation and an explicit
 next-chapter property sequence on both platforms.
+Version **1.3.1** rebuilds the current source and republishes the plugin assets;
+the navigation behavior is unchanged from 1.3.0.
 The feature lets readers deliberately continue to the next Markdown note after
 finishing the current note. It operates in Obsidian Reading view on Android,
 iOS, and desktop when the corresponding option is enabled. Real-app/device
@@ -185,8 +187,8 @@ Node.js built-in modules and checks source syntax before writing the bundle.
 Styles are maintained in `styles.css`.
 
 The GitHub release includes `main.js`, `manifest.json`, and `styles.css`.
-`manifest.json` declares version `1.3.0`, mobile support, and minimum Obsidian
-version `1.0.0`; `versions.json` maps `1.3.0` to `1.0.0`. Compatibility at that
+`manifest.json` declares version `1.3.1`, mobile support, and minimum Obsidian
+version `1.0.0`; `versions.json` maps `1.3.1` to `1.0.0`. Compatibility at that
 minimum version has not been tested.
 
 ## Verification status and acceptance criteria

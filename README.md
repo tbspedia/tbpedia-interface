@@ -8,6 +8,9 @@ preference and have independent settings toggles.
 See the [design specification](DESIGN_SPEC.md) for settings, gesture behavior,
 reading order, accessibility, and verification status.
 
+Current release: **1.3.1**, rebuilt from the current source with the same navigation
+behavior as 1.3.0.
+
 Version **1.3.0** adds desktop scroll navigation and explicit next-chapter links
 to the mobile navigation introduced in 1.2.0. Navigation labels are provided in
 English, Traditional Chinese, and Simplified Chinese, with English fallback.
