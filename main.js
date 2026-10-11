@@ -243,7 +243,8 @@ const DEFAULT_SETTINGS = {
     mobileLoopFolder: false,
     enableDesktopScroll: false,
     desktopReadingOrder: "filename",
-    desktopLoopFolder: false
+    desktopLoopFolder: false,
+    enableStatusBarAutoHide: false
 };
 
 const MOBILE_TEXT = {
@@ -264,6 +265,100 @@ const NAV_TEXT = {
 
 function navText(app, key) {
     return (NAV_TEXT[getObsidianLocale(app)] || NAV_TEXT.en)[key];
+}
+
+const STATUS_BAR_TEXT = {
+    en: ["Auto-hide status bar", "Show the desktop status bar for 15 seconds, then hide it. Move the pointer to the bottom edge of the window to show it again for 30 seconds.", "Show status bar for 30 seconds"],
+    "zh-TW": ["自動隱藏狀態列", "桌面狀態列顯示 15 秒後自動隱藏。將滑鼠或指標移至視窗底部邊緣，可再次顯示 30 秒。", "顯示狀態列 30 秒"],
+    "zh-CN": ["自动隐藏状态栏", "桌面状态栏显示 15 秒后自动隐藏。将鼠标或指针移至窗口底部边缘，可再次显示 30 秒。", "显示状态栏 30 秒"]
+};
+
+function statusBarText(app, index) {
+    return (STATUS_BAR_TEXT[getObsidianLocale(app)] || STATUS_BAR_TEXT.en)[index];
+}
+
+class AutoHideStatusBar {
+    constructor(plugin) {
+        this.plugin = plugin;
+        this.documents = new Map();
+    }
+    enabled() {
+        return !obsidian.Platform.isMobile && this.plugin.settings.enableStatusBarAutoHide;
+    }
+    apply() {
+        if (!this.enabled()) return this.dispose();
+        this.addDocument(document);
+        this.plugin.app.workspace.iterateAllLeaves(leaf => {
+            const doc = leaf.view?.containerEl?.ownerDocument;
+            if (doc) this.addDocument(doc);
+        });
+        for (const state of this.documents.values()) this.syncBars(state);
+    }
+    addDocument(doc) {
+        if (!this.enabled() || !doc.defaultView || this.documents.has(doc)) return;
+        const state = { doc, win: doc.defaultView, bars: new Set(), hidden: false, started: false, atEdge: false, timer: null, cleanup: [] };
+        this.documents.set(doc, state);
+        const listen = (target, name, callback) => {
+            target.addEventListener(name, callback, { passive: true });
+            state.cleanup.push(() => target.removeEventListener(name, callback));
+        };
+        listen(doc, "pointermove", event => {
+            const height = state.win.innerHeight;
+            const atEdge = event.clientY >= height - 8 && event.clientY <= height
+                && event.clientX >= 0 && event.clientX <= state.win.innerWidth;
+            if (atEdge && !state.atEdge) this.show(state, 30000);
+            state.atEdge = atEdge;
+        });
+        listen(doc, "pointerdown", event => {
+            if (event.clientY >= state.win.innerHeight - 8 && event.clientY <= state.win.innerHeight) this.show(state, 30000);
+        });
+        listen(doc, "pointerout", event => { if (!event.relatedTarget) state.atEdge = false; });
+        listen(state.win, "blur", () => { state.atEdge = false; });
+        this.syncBars(state);
+    }
+    syncBars(state) {
+        for (const bar of state.doc.querySelectorAll(".status-bar")) {
+            state.bars.add(bar);
+            bar.classList.toggle("tbpedia-status-bar-hidden", state.hidden);
+        }
+        for (const bar of state.bars) {
+            if (!bar.isConnected) {
+                bar.classList.remove("tbpedia-status-bar-hidden");
+                state.bars.delete(bar);
+            }
+        }
+        if (state.bars.size && !state.started) this.show(state, 15000);
+    }
+    show(state, milliseconds) {
+        if (!this.enabled()) return;
+        state.started = true;
+        state.hidden = false;
+        // Set started before discovery to avoid recursively starting a timer.
+        this.syncBars(state);
+        for (const bar of state.bars) bar.classList.remove("tbpedia-status-bar-hidden");
+        if (state.timer !== null) state.win.clearTimeout(state.timer);
+        state.timer = state.win.setTimeout(() => {
+            state.timer = null;
+            state.hidden = true;
+            this.syncBars(state);
+        }, milliseconds);
+    }
+    reveal(doc) {
+        this.addDocument(doc);
+        const state = this.documents.get(doc);
+        if (state) this.show(state, 30000);
+    }
+    removeDocument(doc) {
+        const state = this.documents.get(doc);
+        if (!state) return;
+        if (state.timer !== null) state.win.clearTimeout(state.timer);
+        state.cleanup.forEach(remove => remove());
+        for (const bar of state.bars) bar.classList.remove("tbpedia-status-bar-hidden");
+        this.documents.delete(doc);
+    }
+    dispose() {
+        for (const doc of this.documents.keys()) this.removeDocument(doc);
+    }
 }
 
 function nextChapter(app, file) {
@@ -537,6 +632,15 @@ class ThemePickerSettingTab extends obsidian.PluginSettingTab {
         const orderKey = mobile ? "mobileReadingOrder" : "desktopReadingOrder";
         const loopKey = mobile ? "mobileLoopFolder" : "desktopLoopFolder";
         this.containerEl.createEl("h3", { text: mobile ? mobileText(this.app, 0) : navText(this.app, "desktop") });
+        if (!mobile) {
+            new obsidian.Setting(this.containerEl)
+                .setName(statusBarText(this.app, 0)).setDesc(statusBarText(this.app, 1))
+                .addToggle(toggle => toggle.setValue(this.plugin.settings.enableStatusBarAutoHide).onChange(async value => {
+                    this.plugin.settings.enableStatusBarAutoHide = value;
+                    this.plugin.applySettings();
+                    await this.plugin.saveData(this.plugin.settings);
+                }));
+        }
         new obsidian.Setting(this.containerEl)
             .setName(mobile ? mobileText(this.app, 1) : navText(this.app, "scroll"))
             .setDesc(mobile ? mobileText(this.app, 2) : navText(this.app, "scrollDescription"))
@@ -579,7 +683,12 @@ class ThemePicker extends obsidian.Plugin {
             this.settings = Object.assign({}, DEFAULT_SETTINGS, yield this.loadData());
             this.noteNavigation = new NoteNavigation(this);
             this.register(() => this.noteNavigation.detach());
-                this.app.workspace.onLayoutReady(() => this.noteNavigation.refresh());
+            this.statusBarAutoHide = new AutoHideStatusBar(this);
+            this.register(() => this.statusBarAutoHide.dispose());
+                this.app.workspace.onLayoutReady(() => {
+                    this.noteNavigation.refresh();
+                    this.statusBarAutoHide.apply();
+                });
                 for (const event of ["layout-change", "active-leaf-change", "file-open"]) {
                     this.registerEvent(this.app.workspace.on(event, () => this.noteNavigation.refresh()));
                 }
@@ -588,6 +697,24 @@ class ThemePicker extends obsidian.Plugin {
                     if (this.noteNavigation.enabled()) this.noteNavigation.refresh();
                 }, 300));
             this.addSettingTab(new ThemePickerSettingTab(this.app, this));
+            this.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, win) => {
+                this.statusBarAutoHide.addDocument(win.document);
+            }));
+            this.registerEvent(this.app.workspace.on("window-close", (_workspaceWindow, win) => {
+                this.statusBarAutoHide.removeDocument(win.document);
+            }));
+            this.addCommand({
+                id: "show-status-bar",
+                name: statusBarText(this.app, 2),
+                checkCallback: checking => {
+                    if (!this.statusBarAutoHide.enabled()) return false;
+                    if (!checking) {
+                        const activeDoc = this.app.workspace.activeLeaf?.view?.containerEl?.ownerDocument || document;
+                        this.statusBarAutoHide.reveal(activeDoc);
+                    }
+                    return true;
+                }
+            });
             this.colorSchemeIcon = this.initializeColorSchemeIcon();
             const themePickerStatusBarItem = this.addStatusBarItem();
             this.themePickerStatusBarItem = themePickerStatusBarItem;
@@ -621,12 +748,14 @@ class ThemePicker extends obsidian.Plugin {
             this.registerEvent(this.app.workspace.on("css-change", () => {
                 this.colorSchemeIcon.innerHTML = this.getColorSchemeIcon();
                 this.refreshLocalizedUi();
+                this.statusBarAutoHide.apply();
             }));
             // Obsidian refreshes its layout after a language preference change.
             // Update persistent controls so they track the app language without
             // requiring the plugin to be re-enabled.
             this.registerEvent(this.app.workspace.on("layout-change", () => {
                 this.refreshLocalizedUi();
+                this.statusBarAutoHide.apply();
             }));
         });
     }
@@ -658,6 +787,7 @@ class ThemePicker extends obsidian.Plugin {
     }
     applySettings() {
         this.noteNavigation?.refresh();
+        this.statusBarAutoHide?.apply();
         this.changeThemeButton.style.display = this.settings.enableChangeTheme ? "" : "none";
         this.changeColorSchemeButton.style.display = this.settings.enableChangeMode ? "" : "none";
         this.themePickerStatusBarItem.style.display =

@@ -10,6 +10,7 @@ Version **1.3.0** adds desktop wheel/trackpad navigation and an explicit
 next-chapter property sequence on both platforms.
 Version **1.3.1** rebuilds the current source and republishes the plugin assets;
 the navigation behavior is unchanged from 1.3.0.
+Version **1.4.0** adds optional desktop status-bar auto-hide.
 The feature lets readers deliberately continue to the next Markdown note after
 finishing the current note. It operates in Obsidian Reading view on Android,
 iOS, and desktop when the corresponding option is enabled. Real-app/device
@@ -26,6 +27,7 @@ Location: **Settings → True Buddha Pedia Interaface → Mobile / Desktop**.
 | --- | --- | --- |
 | Swipe up to next note | Off | Enables the footer and gesture in mobile Reading view. Changes apply immediately and persist. |
 | Scroll to next note | Off | Enables desktop Reading view wheel/trackpad navigation and the footer. |
+| Auto-hide status bar | Off | Desktop: show initially for 15 seconds, then hide; bottom-edge pointer entry reveals it for 30 seconds. |
 | Reading order | Filename | Each platform independently selects filename order, numeric `reading-order`, or Next chapter property. |
 | Loop at end of folder | Off | Each platform can loop the last note to the first note in folder-based modes. Ignored in Next chapter property mode. |
 
@@ -180,6 +182,33 @@ active view, or unloading the plugin removes its controls and listeners.
   with English fallback for other languages. Desktop and reading-order
   explanations use the same three-language coverage.
 
+## Desktop status-bar auto-hide
+
+Location: **Settings → True Buddha Pedia Interaface → Desktop → Auto-hide status bar**.
+Default: off. The option applies to the entire Obsidian status bar, including
+other plugins' items, independently of the theme picker and light/dark toggles.
+
+| Trigger | Result |
+| --- | --- |
+| Enable setting, or start plugin with setting enabled | Show status bar for 15 seconds, then hide. |
+| Enter bottom 8 CSS pixels of window | Show status bar for 30 seconds, then hide. |
+| Continue moving within bottom edge | Keep current deadline; do not prolong visibility. |
+| Leave edge and re-enter, or press at edge | Start a fresh 30-second reveal. |
+| Command: Show status bar for 30 seconds | Reveal in the active desktop window for 30 seconds. |
+| Disable setting or unload plugin | Cancel timers, remove listeners, and restore status bar. |
+
+Each window has an independent timer. Start the initial countdown only once its
+status bar exists. Layout/theme changes do not restart that timer. If a status
+bar is replaced, apply the current visible/hidden state to the replacement.
+Closing a popout clears its timer and handlers. Mobile does not install this
+behavior.
+
+Hide with the plugin's `tbpedia-status-bar-hidden` CSS class and `display: none`
+to reclaim the status bar's space. Remove only that class on reveal/cleanup so
+other styles are retained. Countdown timing is fixed at 15/30 seconds; the
+setting is a toggle. Labels and explanations support English, Traditional
+Chinese, and Simplified Chinese.
+
 ## Implementation and release files
 
 Edit `src/main.js` and run `node build.cjs` to generate `main.js`. The build uses
@@ -187,14 +216,15 @@ Node.js built-in modules and checks source syntax before writing the bundle.
 Styles are maintained in `styles.css`.
 
 The GitHub release includes `main.js`, `manifest.json`, and `styles.css`.
-`manifest.json` declares version `1.3.1`, mobile support, and minimum Obsidian
-version `1.0.0`; `versions.json` maps `1.3.1` to `1.0.0`. Compatibility at that
+`manifest.json` declares version `1.4.0`, mobile support, and minimum Obsidian
+version `1.0.0`; `versions.json` maps `1.4.0` to `1.0.0`. Compatibility at that
 minimum version has not been tested.
 
 ## Verification status and acceptance criteria
 
 JavaScript syntax checks and `node tests/mobile-navigation.test.cjs` passed for
 the released implementation. The test uses mocked Obsidian and DOM objects.
+`node tests/status-bar.test.cjs` also passes with a fake clock and mocked windows.
 
 | Scenario | Expected result | Verification |
 | --- | --- | --- |
@@ -220,6 +250,12 @@ the released implementation. The test uses mocked Obsidian and DOM objects.
 | Continued input after desktop navigation | Cooldown prevents chained opens | Automated check passed |
 | Desktop mouse wheel and trackpad | Progress and fresh-burst behavior work naturally | Real-app check pending |
 | Independent desktop toggle and footer click | Desktop works with mobile disabled and cleans up listeners | Automated checks passed |
+| Status bar initial display | Hides at 15 seconds without layout changes resetting deadline | Automated check passed |
+| Bottom-edge pointer entry | Reveals for 30 seconds; movement within edge does not extend it | Automated check passed |
+| Edge re-entry and keyboard reveal | Start a new 30-second countdown | Automated checks passed |
+| Status bar replacement and popout window | Retain state; use independent window timers | Automated checks passed |
+| Disable, unload, or mobile platform | Restore status bar; clear timers/listeners | Automated checks passed |
+| Actual desktop pointer, resizing, theme layout, and popouts | Status bar remains usable and reveals at the window bottom | Real-app check pending |
 
 Version 1.3.0 rebuilds the plugin assets for the new behaviors. The published
 1.2.0 assets remain available in their original release.

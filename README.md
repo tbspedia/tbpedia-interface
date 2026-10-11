@@ -8,8 +8,7 @@ preference and have independent settings toggles.
 See the [design specification](DESIGN_SPEC.md) for settings, gesture behavior,
 reading order, accessibility, and verification status.
 
-Current release: **1.3.1**, rebuilt from the current source with the same navigation
-behavior as 1.3.0.
+Current release: **1.4.0**, adding desktop status-bar auto-hide.
 
 Version **1.3.0** adds desktop scroll navigation and explicit next-chapter links
 to the mobile navigation introduced in 1.2.0. Navigation labels are provided in
@@ -77,10 +76,30 @@ Navigation opens the next note in the same Obsidian tab at its beginning. Previo
 positions are retained during the plugin session for return navigation. The
 footer supports keyboard focus, screen readers, and reduced motion.
 
+## Status-bar auto-hide
+
+Enable **Settings → True Buddha Pedia Interaface → Desktop → Auto-hide status bar**.
+The setting is off by default. It controls the entire desktop Obsidian status bar,
+including items from other plugins, independently of the theme/mode toggles.
+
+- On enabling the option or loading the plugin, show the status bar for **15 seconds**.
+- Then hide it, reclaiming its space.
+- Move the mouse or pointer into the bottom **8 CSS pixels** of the window to
+  reveal the bar for **30 seconds**.
+- Movement within that edge does not extend the countdown. Leave and re-enter
+  to start another 30-second reveal, or press at the edge.
+- The command **Show status bar for 30 seconds** is also available when enabled.
+- Disabling the option or unloading the plugin restores the bar and clears timers.
+
+Each desktop window with a status bar has an independent countdown. Mobile is
+unaffected. The setting and its explanation are localized in English, Traditional
+Chinese, and Simplified Chinese.
+
 ## Verification
 
 Edit `src/main.js`, run `node build.cjs` to regenerate the distributable, then run
-`node --check main.js` and `node tests/mobile-navigation.test.cjs`.
+`node --check main.js`, `node tests/mobile-navigation.test.cjs`, and
+`node tests/status-bar.test.cjs`.
 The automated checks use a mocked Obsidian environment; they do not replace
 testing in the mobile app.
 
@@ -95,3 +114,8 @@ momentum after opening a short note, zoom/horizontal scrolling, footer clicks,
 and Back navigation. Test linked chapters within and across folders and all
 three property names. Real Obsidian device/app checks remain pending; automated
 tests cover the sequence resolver and mobile/desktop navigation logic.
+
+Status-bar tests use a fake clock to check the exact 15/30-second countdowns,
+edge entry/re-entry, replacement bars, popout windows, disabling, and cleanup.
+Real Obsidian checks for pointer interaction, window resizing, theme layouts,
+popout windows, and the keyboard command remain pending.

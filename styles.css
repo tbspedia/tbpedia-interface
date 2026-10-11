@@ -10,6 +10,10 @@
 	fill: var(--text-normal);
 }
 
+.status-bar.tbpedia-status-bar-hidden {
+	display: none !important;
+}
+
 .tbpedia-navigation-host {
 	position: relative;
 }
